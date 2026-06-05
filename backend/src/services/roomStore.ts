@@ -30,7 +30,8 @@ function generateUniqueCode() {
 }
 
 function displayName(name?: string) {
-  return name || "Player";
+  const trimmed = name?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : "Player";
 }
 
 function createParticipant(name?: string): Participant {
@@ -98,11 +99,18 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+  const isViewerDrawer = viewerParticipantId
+    ? room.drawerParticipantId === viewerParticipantId
+    : false;
+
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostParticipantId: room.hostParticipantId,
+    drawerParticipantId: room.drawerParticipantId ?? room.hostParticipantId,
+    secretWord: isViewerDrawer ? room.secretWord : undefined,
+    role: isViewerDrawer ? "drawer" : "guesser",
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     isHost: viewerParticipantId ? room.hostParticipantId === viewerParticipantId : false

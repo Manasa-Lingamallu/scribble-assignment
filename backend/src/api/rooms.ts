@@ -8,6 +8,7 @@ import {
   startGameSchema
 } from "./schemas.js";
 import { createRoom, getRoom, joinRoom, saveRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -63,6 +64,8 @@ export function createRoomsRouter() {
         throw new HttpError(400, "At least 2 players are required to start");
       }
 
+      room.drawerParticipantId = room.hostParticipantId;
+      room.secretWord = STARTER_WORDS[0];
       room.status = "playing";
       const updatedRoom = saveRoom(room)!;
 

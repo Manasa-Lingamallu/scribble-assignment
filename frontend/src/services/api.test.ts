@@ -1,6 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 
+function makeRoom(overrides: Record<string, unknown> = {}) {
+  return {
+    code: "ABCD",
+    status: "lobby",
+    participants: [],
+    hostParticipantId: "p1",
+    drawerParticipantId: "p1",
+    role: "drawer",
+    isHost: true,
+    ...overrides
+  };
+}
+
 describe("api service", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -12,7 +25,7 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [], isHost: true },
+          room: makeRoom(),
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -33,7 +46,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [], isHost: false },
+          room: makeRoom({ code: "XYZW", isHost: false }),
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -51,7 +64,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "ABCD", status: "playing", participants: [], isHost: true },
+          room: makeRoom({ status: "playing" }),
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);

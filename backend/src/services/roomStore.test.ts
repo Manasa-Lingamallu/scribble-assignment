@@ -19,6 +19,13 @@ describe("roomStore", () => {
     expect(room!.hostParticipantId).toBe(result.participantId);
   });
 
+  it("createRoom trims whitespace from player name", () => {
+    const result = createRoom("  Alice  ");
+    const room = getRoom(result.room.code);
+
+    expect(room!.participants[0].name).toBe("Alice");
+  });
+
   it("joinRoom returns null for an unknown room code", () => {
     const result = joinRoom("ZZZZ", "Bob");
 
@@ -40,5 +47,37 @@ describe("roomStore", () => {
     const snapshot = toRoomSnapshot(room, joinerResult.participantId);
 
     expect(snapshot.isHost).toBe(false);
+  });
+
+  it("toRoomSnapshot sets role to drawer when viewer is the drawer", () => {
+    const result = createRoom("Alice");
+    const room = getRoom(result.room.code)!;
+    room.drawerParticipantId = result.participantId;
+    room.secretWord = "rocket";
+    const snapshot = toRoomSnapshot(room, result.participantId);
+
+    expect(snapshot.role).toBe("drawer");
+    expect(snapshot.secretWord).toBe("rocket");
+  });
+
+  it("toRoomSnapshot sets role to guesser for non-drawer and omits secretWord", () => {
+    const hostResult = createRoom("Alice");
+    const joinerResult = joinRoom(hostResult.room.code, "Bob")!;
+    const room = getRoom(hostResult.room.code)!;
+    room.drawerParticipantId = hostResult.participantId;
+    room.secretWord = "rocket";
+    const snapshot = toRoomSnapshot(room, joinerResult.participantId);
+
+    expect(snapshot.role).toBe("guesser");
+    expect(snapshot.secretWord).toBeUndefined();
+  });
+
+  it("toRoomSnapshot includes drawerParticipantId for all viewers", () => {
+    const result = createRoom("Alice");
+    const room = getRoom(result.room.code)!;
+    room.drawerParticipantId = result.participantId;
+    const snapshot = toRoomSnapshot(room, result.participantId);
+
+    expect(snapshot.drawerParticipantId).toBe(result.participantId);
   });
 });

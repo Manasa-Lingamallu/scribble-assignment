@@ -5,22 +5,33 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    roomStore.startPolling(2000);
+
+    return () => {
+      roomStore.stopPolling();
+    };
+  }, [navigate, room, roomStore]);
 
   if (!room) {
     return null;
   }
 
+  const isDrawer = room.role === "drawer";
+  const drawerId = room.drawerParticipantId;
+  const drawer = room.participants.find((participant) => participant.id === drawerId) ?? null;
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   return (
@@ -40,9 +51,17 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
+          {isDrawer && room.secretWord && (
+            <Card title="Your Secret Word">
+              <p style={{ fontSize: "2rem", fontWeight: 700, textAlign: "center", margin: 0 }}>
+                {room.secretWord}
+              </p>
+            </Card>
+          )}
+
           <Card title="Canvas">
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+              {isDrawer ? "Draw your word on the canvas!" : "Waiting for the drawer to start drawing..."}
             </div>
           </Card>
         </div>
@@ -55,15 +74,23 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
+              {!isDrawer && drawer && (
+                <div>
+                  <dt>Drawer</dt>
+                  <dd>{drawer.name}</dd>
+                </div>
+              )}
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 
