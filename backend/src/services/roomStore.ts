@@ -122,12 +122,50 @@ export function submitGuess(
 
   if (isCorrect) {
     participant.score += 100;
+    room.status = "finished";
   }
 
   room.updatedAt = now();
   rooms.set(roomCode, room);
 
   return { guess, room: cloneRoom(room) };
+}
+
+export function endRound(roomCode: string, participantId: string): { room: Room } | null {
+  const room = rooms.get(roomCode);
+
+  if (!room) return null;
+  if (room.status !== "playing") return null;
+  if (room.hostParticipantId !== participantId) return null;
+
+  room.status = "finished";
+  room.updatedAt = now();
+  rooms.set(roomCode, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function restartGame(roomCode: string, participantId: string): { room: Room } | null {
+  const room = rooms.get(roomCode);
+
+  if (!room) return null;
+  if (room.status !== "finished") return null;
+  if (room.hostParticipantId !== participantId) return null;
+
+  room.status = "lobby";
+  room.drawerParticipantId = undefined;
+  room.secretWord = undefined;
+  room.guesses = [];
+  room.canvasDataUrl = undefined;
+
+  for (const participant of room.participants) {
+    participant.score = 0;
+  }
+
+  room.updatedAt = now();
+  rooms.set(roomCode, room);
+
+  return { room: cloneRoom(room) };
 }
 
 export function updateCanvas(roomCode: string, dataUrl: string): boolean {
@@ -164,7 +202,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     hostParticipantId: room.hostParticipantId,
     drawerParticipantId: room.drawerParticipantId ?? room.hostParticipantId,
-    secretWord: isViewerDrawer ? room.secretWord : undefined,
+    secretWord: isViewerDrawer || room.status === "finished" ? room.secretWord : undefined,
     role: isViewerDrawer ? "drawer" : "guesser",
     availableWords: listWords(),
     roles: [...STARTER_ROLES],

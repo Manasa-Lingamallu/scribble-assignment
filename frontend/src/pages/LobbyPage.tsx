@@ -16,7 +16,7 @@ export function LobbyPage() {
       return;
     }
 
-    if (room.status === "playing") {
+    if (room.status !== "lobby") {
       navigate("/game");
       return;
     }

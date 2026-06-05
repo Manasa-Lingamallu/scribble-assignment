@@ -10,9 +10,11 @@ export const joinRoomSchema = z.object({
   playerName: playerNameField
 });
 
-export const startGameSchema = z.object({
+export const participantIdSchema = z.object({
   participantId: z.string()
 });
+
+export const startGameSchema = participantIdSchema;
 
 export const roomCodeParamsSchema = z.object({
   code: z.string()

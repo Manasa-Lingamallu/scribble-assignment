@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
+import { ResultScreen } from "../components/ResultScreen";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -12,28 +13,6 @@ export function GamePage() {
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
   const [guessError, setGuessError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!room) {
-      navigate("/", { replace: true });
-      return;
-    }
-
-    roomStore.startPolling(2000);
-
-    return () => {
-      roomStore.stopPolling();
-    };
-  }, [navigate, room, roomStore]);
-
-  if (!room) {
-    return null;
-  }
-
-  const isDrawer = room.role === "drawer";
-  const drawerId = room.drawerParticipantId;
-  const drawer = room.participants.find((participant) => participant.id === drawerId) ?? null;
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   const handleSubmitGuess = useCallback(
     async (text: string) => {
@@ -49,6 +28,45 @@ export function GamePage() {
     },
     [roomStore]
   );
+
+  const handleEndRound = useCallback(async () => {
+    try {
+      await roomStore.endRound();
+    } catch {
+      // error is set on roomStore state
+    }
+  }, [roomStore]);
+
+  useEffect(() => {
+    if (!room) {
+      navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+      return;
+    }
+
+    roomStore.startPolling(2000);
+
+    return () => {
+      roomStore.stopPolling();
+    };
+  }, [navigate, room, roomStore]);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status === "finished") {
+    return <ResultScreen />;
+  }
+
+  const isDrawer = room.role === "drawer";
+  const drawerId = room.drawerParticipantId;
+  const drawer = room.participants.find((participant) => participant.id === drawerId) ?? null;
+  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   return (
     <section className="panel game-page">
@@ -157,6 +175,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {room.isHost && (
+          <button className="button button--secondary" onClick={handleEndRound}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
