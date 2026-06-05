@@ -1,11 +1,17 @@
 import { z } from "zod";
 
+const playerNameField = z.string().trim().min(1, "Player name cannot be empty").optional();
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameField
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameField
+});
+
+export const startGameSchema = z.object({
+  participantId: z.string()
 });
 
 export const roomCodeParamsSchema = z.object({

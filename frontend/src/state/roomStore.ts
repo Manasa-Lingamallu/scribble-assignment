@@ -28,6 +28,8 @@ class RoomStore {
 
   private listeners = new Set<Listener>();
 
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
     return () => {
@@ -59,6 +61,20 @@ class RoomStore {
       throw error;
     } finally {
       this.setState({ isLoading: false });
+    }
+  }
+
+  startPolling(intervalMs: number) {
+    this.stopPolling();
+    this.pollingInterval = setInterval(() => {
+      this.fetchRoom().catch(() => undefined);
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollingInterval !== null) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
   }
 
@@ -97,6 +113,17 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
   }
 }
 

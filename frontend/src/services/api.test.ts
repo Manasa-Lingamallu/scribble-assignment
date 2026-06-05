@@ -12,7 +12,7 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: { code: "ABCD", status: "lobby", participants: [], isHost: true },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -33,7 +33,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
+          room: { code: "XYZW", status: "lobby", participants: [], isHost: false },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -43,6 +43,27 @@ describe("api service", () => {
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
+    );
+  });
+
+  it("startGame sends PATCH to /rooms/:code/start with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "playing", participants: [], isHost: true },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
     );
   });
 });

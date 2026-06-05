@@ -12,6 +12,11 @@ export function CreateRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!playerName.trim()) {
+      setError("Player name cannot be empty");
+      return;
+    }
+
     try {
       setError(null);
       await roomStore.createRoom(playerName);
