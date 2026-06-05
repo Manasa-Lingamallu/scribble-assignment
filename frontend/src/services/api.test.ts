@@ -10,6 +10,7 @@ function makeRoom(overrides: Record<string, unknown> = {}) {
     drawerParticipantId: "p1",
     role: "drawer",
     isHost: true,
+    guesses: [],
     ...overrides
   };
 }
@@ -76,6 +77,28 @@ describe("api service", () => {
       expect.objectContaining({
         method: "PATCH",
         body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("submitGuess sends POST to /rooms/:code/guess with participantId and text", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          guess: { participantId: "p1", participantName: "Alice", text: "rocket", isCorrect: true, createdAt: "2026-01-01T00:00:00.000Z" },
+          room: makeRoom({ status: "playing" }),
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p1", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", text: "rocket" }),
       })
     );
   });

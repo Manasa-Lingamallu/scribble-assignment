@@ -4,6 +4,15 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  score: number;
+}
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+  createdAt: string;
 }
 
 export interface RoomSnapshot {
@@ -17,6 +26,8 @@ export interface RoomSnapshot {
   availableWords: string[];
   roles: ParticipantRole[];
   isHost: boolean;
+  guesses: Guess[];
+  canvasDataUrl?: string;
 }
 
 export interface RoomSessionResponse {
@@ -67,6 +78,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "PATCH",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ guess: Guess; room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  updateCanvas(code: string, dataUrl: string) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "PUT",
+      body: JSON.stringify({ dataUrl })
     });
   }
 };

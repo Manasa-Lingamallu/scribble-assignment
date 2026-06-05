@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createRoomSchema,
+  guessSchema,
   joinRoomSchema,
   roomCodeParamsSchema,
   startGameSchema
@@ -48,6 +49,29 @@ describe("schemas", () => {
 
     it("rejects a body without participantId", () => {
       expect(() => startGameSchema.parse({})).toThrow();
+    });
+  });
+
+  describe("guessSchema", () => {
+    it("accepts a valid guess", () => {
+      const result = guessSchema.parse({ participantId: "p1", text: "hello" });
+
+      expect(result.participantId).toBe("p1");
+      expect(result.text).toBe("hello");
+    });
+
+    it("trims whitespace from guess text", () => {
+      const result = guessSchema.parse({ participantId: "p1", text: "  hello  " });
+
+      expect(result.text).toBe("hello");
+    });
+
+    it("rejects empty guess text", () => {
+      expect(() => guessSchema.parse({ participantId: "p1", text: "" })).toThrow();
+    });
+
+    it("rejects whitespace-only guess text", () => {
+      expect(() => guessSchema.parse({ participantId: "p1", text: "   " })).toThrow();
     });
   });
 

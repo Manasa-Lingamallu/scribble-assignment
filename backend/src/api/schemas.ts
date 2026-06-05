@@ -18,6 +18,11 @@ export const roomCodeParamsSchema = z.object({
   code: z.string()
 });
 
+export const guessSchema = z.object({
+  participantId: z.string(),
+  text: z.string().trim().min(1, "Guess cannot be empty")
+});
+
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });

@@ -1,13 +1,14 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, saveRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, saveRoom, submitGuess, toRoomSnapshot, updateCanvas } from "../services/roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 export function createRoomsRouter() {
@@ -72,6 +73,46 @@ export function createRoomsRouter() {
       response.json({
         room: toRoomSnapshot(updatedRoom, participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if (!result) {
+        throw new HttpError(400, "Unable to submit guess");
+      }
+
+      response.json({
+        guess: result.guess,
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { dataUrl } = request.body as { dataUrl: string };
+
+      if (typeof dataUrl !== "string") {
+        throw new HttpError(400, "Invalid canvas data");
+      }
+
+      const updated = updateCanvas(code.toUpperCase(), dataUrl);
+
+      if (!updated) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({ ok: true });
     } catch (error) {
       next(error);
     }

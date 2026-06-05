@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -38,7 +38,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -57,6 +58,7 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostParticipantId: participant.id,
     participants: [participant],
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -87,6 +89,59 @@ export function joinRoom(code: string, playerName?: string) {
   };
 }
 
+export function submitGuess(
+  roomCode: string,
+  participantId: string,
+  text: string
+): { guess: Guess; room: Room } | null {
+  const room = rooms.get(roomCode);
+
+  if (!room) return null;
+
+  if (room.status !== "playing") return null;
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) return null;
+
+  if (room.drawerParticipantId === participantId) return null;
+
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const isCorrect = trimmed.toLowerCase() === (room.secretWord ?? "").toLowerCase();
+
+  const guess: Guess = {
+    participantId,
+    participantName: participant.name,
+    text: trimmed,
+    isCorrect,
+    createdAt: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect) {
+    participant.score += 100;
+  }
+
+  room.updatedAt = now();
+  rooms.set(roomCode, room);
+
+  return { guess, room: cloneRoom(room) };
+}
+
+export function updateCanvas(roomCode: string, dataUrl: string): boolean {
+  const room = rooms.get(roomCode);
+
+  if (!room) return false;
+
+  room.canvasDataUrl = dataUrl;
+  room.updatedAt = now();
+  rooms.set(roomCode, room);
+
+  return true;
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
@@ -113,6 +168,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     role: isViewerDrawer ? "drawer" : "guesser",
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    isHost: viewerParticipantId ? room.hostParticipantId === viewerParticipantId : false
+    isHost: viewerParticipantId ? room.hostParticipantId === viewerParticipantId : false,
+    guesses: [...room.guesses],
+    canvasDataUrl: room.canvasDataUrl
   };
 }
